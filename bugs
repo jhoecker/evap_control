@@ -1,9 +1,0 @@
-- Zeit geht nicht mit (x-achse)
-- Emission control wird nicht übertragen (immer == 1)
-- FLUX in nA => wenn abgefragt sofort mit 1e9 multiplizieren
-- Textfeld zentrieren und größere Schriftart
-- Graphen Aspektverhältnis anpassen
-
-
-- Dokumentation im Quellcode -> GUI
-- Programmanleitung außerhalb
