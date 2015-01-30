@@ -1,0 +1,10 @@
+## generic files to ignore
+*~
+*.DS_Store
+*.swp
+*.pyc
+*.out
+.directory
+
+# except this file
+!.gitignore
