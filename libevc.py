@@ -28,7 +28,7 @@ class EvapParams():
     '''EVCstate contains the state of all EVC / evaporator parameters like
     emission (emis), temperature (temp), highvoltage (hv), fil (filament),
     emiscon (emission control: 1 = off, 0 = on) and flux.'''
-    def __init__(self):
+    def __init__(self, evap_controller):
         '''Initialize parameters. Start with None to show that they
         are not set.'''
         self.emis = None
@@ -36,13 +36,16 @@ class EvapParams():
         self.hv = None
         self.flux = None
         self.fil = None
+        self.estab_cont(evap_controller)
+
 #        self.controller = EVC()
 
-    def estab_cont(self, EVC_controller):
+    def estab_cont(self, evap_controller):
         '''estab_cont establishes the communication with the EVC300 and reads
         the parameters the first time.'''
-        self.controller = EVC_controller
-        self.update_params()
+        if evap_controller == 'EVC':
+            self.controller = EVC()
+#        self.update_params()
 
     def update_params(self):
         '''Returns all evaporator parameters.'''
@@ -94,13 +97,13 @@ class EVC():
         # BUG in EVC300: Emission control not remote available
         try:
             self.ser = serial.Serial(
-            baudrate=57600,
-            port='/dev/ttyUSB0',
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            xonxoff=True,
-            bytesize=serial.EIGHTBITS,
-            timeout=1)
+                baudrate=57600,
+                port='/dev/ttyUSB0',
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                xonxoff=True,
+                bytesize=serial.EIGHTBITS,
+                timeout=1)
             print('Serial port to EVC open')
         except serial.SerialException as err_msg:
             print('Not able to open serial port: {}'.format(err_msg))
@@ -137,7 +140,7 @@ class EVC():
 
     def get_flux(self):
         '''Reads flux.'''
-        return self._get_value('Flux')
+        return self._get_value('Flux')*10**9
 
     def get_hv(self):
         '''Reads volt.'''

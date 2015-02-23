@@ -30,7 +30,11 @@ import pylab
 import libevc
 import time
 
-evap = libevc.EvapParams()
+## TODO 
+# - Remove EVC instance
+# - Remove self.flux / self.emis and replace by libevc.Data
+
+evap = libevc.EvapParams('EVC')
 evc = libevc.EVC()
 data = libevc.Data()
 
@@ -100,10 +104,9 @@ class EvapGUI(wx.Frame):
     def __init__(self):
         '''Inits the main frame.'''
         wx.Frame.__init__(self, None, -1, self.title)
-        evap.update_params()
-        self.data_flux = [evap.flux]
-        self.data_emis = [evap.emis]
-        self.paused = False
+        self.data_flux = []
+        self.data_emis = []
+        self.paused = True
         self.create_main_panel()
         self.redraw_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)
@@ -146,7 +149,7 @@ class EvapGUI(wx.Frame):
 
         self.fil = wx.StaticText(self.panel, label=str(evap.fil))
         self.emis = wx.StaticText(self.panel, label=str(evap.emis))
-        self.flux = wx.StaticText(self.panel, label=str(evap.flux*10**9))
+        self.flux = wx.StaticText(self.panel, label=str(evap.flux))
         self.hv = wx.StaticText(self.panel, label=str(evap.hv))
         self.temp = wx.StaticText(self.panel, label=str(evap.temp))
         self.caption = wx.StaticText(self.panel, label='Parameters')
@@ -225,7 +228,7 @@ class EvapGUI(wx.Frame):
         # plot the data as a line series, and save the reference
         # to the plotted line series
         self.plot_data_flux = self.axes_flux.plot(
-            self.data_flux, 
+            self.data_flux,
             linewidth=1,
             color=(1, 1, 0),
             )[0]
@@ -257,8 +260,15 @@ class EvapGUI(wx.Frame):
     def draw_plot_flux(self):
         '''Redraws the plot of FLUX'''
         twindow = 300
-        xmax = len(self.data_flux)*2 if len(self.data_flux)*2 > twindow else twindow
-        ymax = round(max(self.data_flux), 0) + 1
+        #### DEBUG ####
+        # print('self.data_flux = {}'.format(self.data_flux))
+        if self.data_flux == None:
+            xmax = twindow
+            ymax = 1
+        else:
+            xmax = len(self.data_flux)*2 if len(self.data_flux)*2 > twindow else twindow
+            ymax = round(max(self.data_flux), 0) + 1
+
 
         if self.cb_grid.IsChecked():
             self.axes_flux.grid(True, color='gray')
@@ -282,6 +292,9 @@ class EvapGUI(wx.Frame):
     def draw_plot_emis(self):
         '''Redraws the plot of EMIS'''
         twindow = 300
+        if self.data_emis == None:
+            xmax = twindow
+            ymax = 1
         xmax = len(self.data_emis)*2 if len(self.data_emis)*2 > twindow else twindow
         ymax = round(max(self.data_emis), 0) + 1
 
@@ -345,13 +358,13 @@ class EvapGUI(wx.Frame):
         # (to respond to scale modifications, grid change, etc.)
         if not self.paused:
             evap.update_params()
-            self.data_flux.append(evap.flux*10**9)
+            self.data_flux.append(evap.flux)
             self.data_emis.append(evap.emis)
-            data.add_val(evap.flux*10**9, evap.emis)
-
-        self.draw_plot_flux()
-        self.draw_plot_emis()
-        self.set_textboxlabels(str(evap.fil), str(evap.emis), str(evap.flux*10**9), str(evap.hv), str(evap.temp))
+            data.add_val(evap.flux, evap.emis)
+            self.draw_plot_flux()
+            self.draw_plot_emis()
+            self.set_textboxlabels(str(evap.fil), str(evap.emis), str(evap.flux), 
+                    str(evap.hv), str(evap.temp))
 
     def on_exit(self, event):
         '''Destroys the application when you close it.'''
