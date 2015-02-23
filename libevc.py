@@ -23,6 +23,7 @@ from __future__ import division
 import serial
 import time
 
+
 class EvapParams():
     '''EVCstate contains the state of all EVC / evaporator parameters like
     emission (emis), temperature (temp), highvoltage (hv), fil (filament),
@@ -35,15 +36,15 @@ class EvapParams():
         self.hv = None
         self.flux = None
         self.fil = None
-        self.controller = EVC()
+#        self.controller = EVC()
 
     def estab_cont(self, EVC_controller):
         '''estab_cont establishes the communication with the EVC300 and reads
         the parameters the first time.'''
         self.controller = EVC_controller
-        self.status()
+        self.update_params()
 
-    def status(self):
+    def update_params(self):
         '''Returns all evaporator parameters.'''
         self.fil = self.controller.get_fil()
         self.emis = self.controller.get_emis()
@@ -53,7 +54,6 @@ class EvapParams():
 
     def print_status(self):
         ''' Print evaporator parameters to stdout.'''
-        self.status()
         print('FIL  {0:3.2f} A     EMIS  {1:2.1f} mA'.format(self.fil, self.emis))
         print('FLUX  {0} nA   VOLT  {1:3.0f} V'.format(self.flux, self.hv))
         print('TMP  {0:2.1f} C'.format(self.temp))
@@ -92,7 +92,8 @@ class EVC():
         # give permission to user to access port ttyUSB0 -> links.txt
         # TODO Write error when no serial port open
         # BUG in EVC300: Emission control not remote available
-        self.ser = serial.Serial(
+        try:
+            self.ser = serial.Serial(
             baudrate=57600,
             port='/dev/ttyUSB0',
             parity=serial.PARITY_NONE,
@@ -100,7 +101,9 @@ class EVC():
             xonxoff=True,
             bytesize=serial.EIGHTBITS,
             timeout=1)
-        print('Serial port to EVC open')
+            print('Serial port to EVC open')
+        except serial.SerialException as err_msg:
+            print('Not able to open serial port: {}'.format(err_msg))
 
     def _get_value(self, str_val):
         '''Reads value of parameter given by str_val. Returns float number.'''

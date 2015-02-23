@@ -34,8 +34,10 @@ evap = libevc.EvapParams()
 evc = libevc.EVC()
 data = libevc.Data()
 
+
 class EnterSelectElement(wx.Panel):
-    ''' A static box with a enter-text-field and combobox. Processes value on Enter.'''
+    ''' A static box with a enter-text-field and combobox.
+    Processes value on enter.'''
     def __init__(self, parent, ID, label, initval):
         '''Inits EnterSelectElement.'''
         wx.Panel.__init__(self, parent, ID)
@@ -45,14 +47,12 @@ class EnterSelectElement(wx.Panel):
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         self.manual_text = wx.TextCtrl(self, -1,
-            size=(35,-1),
-            value=str(initval),
-            style=wx.TE_PROCESS_ENTER)
+                                       size=(35, -1),
+                                       value=str(initval),
+                                       style=wx.TE_PROCESS_ENTER)
 
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_enter, self.manual_text)
-
         parameters = ['EMIS', 'VOLT', 'None']
-
         self.select_value = wx.ComboBox(self, -1, choices=parameters, style=wx.CB_READONLY)
         self.select_value.SetValue(parameters[2])
         self.on_combo(self.select_value)
@@ -61,9 +61,7 @@ class EnterSelectElement(wx.Panel):
         manual_box = wx.BoxSizer(wx.HORIZONTAL)
         manual_box.Add(self.manual_text, flag=wx.ALIGN_CENTER_VERTICAL)
         manual_box.Add(self.select_value, flag=wx.ALIGN_RIGHT)
-
         sizer.Add(manual_box, 0, wx.ALL, 10)
-
         self.SetSizer(sizer)
         sizer.Fit(self)
 
@@ -94,6 +92,7 @@ class EnterSelectElement(wx.Panel):
         '''Gets selection from combo box.'''
         self.paramSelection = self.select_value.GetValue()
 
+
 class EvapGUI(wx.Frame):
     '''The main frame of the application'''
     title = 'EVAP - The EVC Data Graph'
@@ -101,20 +100,18 @@ class EvapGUI(wx.Frame):
     def __init__(self):
         '''Inits the main frame.'''
         wx.Frame.__init__(self, None, -1, self.title)
-        
-        evap.status()
+        evap.update_params()
         self.data_flux = [evap.flux]
         self.data_emis = [evap.emis]
         self.paused = False
-
         self.create_main_panel()
-        
         self.redraw_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)        
+        self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)
         self.redraw_timer.Start(2000)
 
     def create_main_panel(self):
-        '''Creates main panel with all the GUI elements. A lot of box sizers are used.'''
+        '''Creates main panel with all the GUI elements. A lot of box sizers
+        are used.'''
         self.panel = wx.Panel(self)
 
         self.init_plot_flux()
@@ -146,7 +143,7 @@ class EvapGUI(wx.Frame):
         self.line2 = wx.StaticLine(self.panel, -1, style=wx.LI_VERTICAL)
         self.line3 = wx.StaticLine(self.panel, -1, style=wx.LI_HORIZONTAL)
         self.line4 = wx.StaticLine(self.panel, -1, style=wx.LI_HORIZONTAL)
-        
+
         self.fil = wx.StaticText(self.panel, label=str(evap.fil))
         self.emis = wx.StaticText(self.panel, label=str(evap.emis))
         self.flux = wx.StaticText(self.panel, label=str(evap.flux*10**9))
@@ -165,17 +162,17 @@ class EvapGUI(wx.Frame):
         self.hbox2.AddMany([self.fil, self.emis, self.flux, self.hv, self.temp])
 
         self.hbox3 = wx.BoxSizer(wx.VERTICAL)
-        self.hbox3.AddMany([(wx.StaticText(self.panel, label='FIL')), 
-            (wx.StaticText(self.panel, label='EMIS')), 
-            (wx.StaticText(self.panel, label='FLUX')), 
-            (wx.StaticText(self.panel, label='VOLT')), 
+        self.hbox3.AddMany([(wx.StaticText(self.panel, label='FIL')),
+            (wx.StaticText(self.panel, label='EMIS')),
+            (wx.StaticText(self.panel, label='FLUX')),
+            (wx.StaticText(self.panel, label='VOLT')),
             (wx.StaticText(self.panel, label='TMP'))])
 
         self.hbox4 = wx.BoxSizer(wx.VERTICAL)
-        self.hbox4.AddMany([(wx.StaticText(self.panel, label='A')), 
-            (wx.StaticText(self.panel, label='mA')), 
-            (wx.StaticText(self.panel, label='nA')), 
-            (wx.StaticText(self.panel, label='V')), 
+        self.hbox4.AddMany([(wx.StaticText(self.panel, label='A')),
+            (wx.StaticText(self.panel, label='mA')),
+            (wx.StaticText(self.panel, label='nA')),
+            (wx.StaticText(self.panel, label='V')),
             (wx.StaticText(self.panel, label='°C'))])
 
         self.hbox5 = wx.BoxSizer(wx.VERTICAL)
@@ -186,10 +183,10 @@ class EvapGUI(wx.Frame):
         self.hbox6.Add(self.hbox3, 0, flag=wx.RIGHT | wx.GROW | wx.ALIGN_LEFT, border=40)
         self.hbox6.Add(self.hbox2, 0, flag=wx.RIGHT | wx.GROW, border=15)
         self.hbox6.Add(self.hbox4, 0, flag=wx.RIGHT | wx.GROW | wx.ALIGN_TOP, border=10)
-        
+
         self.hbox7 = wx.BoxSizer(wx.VERTICAL)
         self.hbox7.Add(self.caption, 0, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.hbox7.Add(self.line3, 0, flag=wx.BOTTOM | wx.GROW, border=10)        
+        self.hbox7.Add(self.line3, 0, flag=wx.BOTTOM | wx.GROW, border=10)
         self.hbox7.Add(self.hbox6, 0, flag=wx.ALL | wx.ALIGN_TOP | wx.ALIGN_LEFT | wx.SHAPED)
         self.hbox7.Add(self.line4, 0, flag=wx.TOP | wx.BOTTOM | wx.GROW, border=10)
         self.hbox7.Add(self.set_value, 0, flag=wx.RIGHT | wx.ALIGN_LEFT)
@@ -200,7 +197,7 @@ class EvapGUI(wx.Frame):
         self.vbox.Add(self.hbox5, 1, flag=wx.ALL | wx.GROW | wx.ALIGN_CENTER, border=5)
         self.vbox.Add(self.line2, 0, flag=wx.ALL | wx.GROW, border=5)
         self.vbox.Add(self.hbox1, 0, flag=wx.ALIGN_TOP | wx.ALIGN_RIGHT | wx.GROW | wx.ALL)
-        
+
         self.panel.SetSizer(self.vbox)
         self.vbox.Fit(self)
 
@@ -225,9 +222,8 @@ class EvapGUI(wx.Frame):
         pylab.setp(self.axes_flux.get_xticklabels(), fontsize=8)
         pylab.setp(self.axes_flux.get_yticklabels(), fontsize=8)
 
-        # plot the data as a line series, and save the reference 
+        # plot the data as a line series, and save the reference
         # to the plotted line series
-        #
         self.plot_data_flux = self.axes_flux.plot(
             self.data_flux, 
             linewidth=1,
@@ -305,13 +301,13 @@ class EvapGUI(wx.Frame):
         self.axes_emis.set_ybound(lower=ymin, upper=ymax)
         self.plot_data_emis.set_xdata(np.arange(len(self.data_emis))*2)
         self.plot_data_emis.set_ydata(np.array(self.data_emis))
-        
+
         self.canvas_emis.draw()
 
     def on_pause_button(self, event):
         '''Sets paused to false/true.'''
         self.paused = not self.paused
-    
+
     def on_update_pause_button(self, event):
         '''Updates the label on the pause button.'''
         label = 'Resume' if self.paused else 'Pause'
@@ -348,7 +344,7 @@ class EvapGUI(wx.Frame):
         # if paused do not add data, but still redraw the plot
         # (to respond to scale modifications, grid change, etc.)
         if not self.paused:
-            evap.status()
+            evap.update_params()
             self.data_flux.append(evap.flux*10**9)
             self.data_emis.append(evap.emis)
             data.add_val(evap.flux*10**9, evap.emis)
@@ -356,7 +352,7 @@ class EvapGUI(wx.Frame):
         self.draw_plot_flux()
         self.draw_plot_emis()
         self.set_textboxlabels(str(evap.fil), str(evap.emis), str(evap.flux*10**9), str(evap.hv), str(evap.temp))
-    
+
     def on_exit(self, event):
         '''Destroys the application when you close it.'''
         self.Destroy()
@@ -366,4 +362,3 @@ if __name__ == '__main__':
     app.frame = EvapGUI()
     app.frame.Show()
     app.MainLoop()
-
