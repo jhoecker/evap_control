@@ -32,7 +32,6 @@ import time
 
 ## TODO
 # - Remove EVC instance
-# - Remove self.flux / self.emis and replace by libevc.Data
 
 evap = libevc.EvapParams('EVC')
 evc = libevc.EVC()
@@ -104,13 +103,12 @@ class EvapGUI(wx.Frame):
     def __init__(self):
         '''Inits the main frame.'''
         wx.Frame.__init__(self, None, -1, self.title)
-        self.data_flux = []
-        self.data_emis = []
+        self.redrawtime = 2  # in sec
         self.paused = True
         self.create_main_panel()
         self.redraw_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)
-        self.redraw_timer.Start(2000)
+        self.redraw_timer.Start(self.redraw_timer*1000)
 
     def create_main_panel(self):
         '''Creates main panel with all the GUI elements. A lot of box sizers
@@ -228,7 +226,7 @@ class EvapGUI(wx.Frame):
         # plot the data as a line series, and save the reference
         # to the plotted line series
         self.plot_data_flux = self.axes_flux.plot(
-            self.data_flux,
+            data.flux,
             linewidth=1,
             color=(1, 1, 0),
             )[0]
@@ -249,7 +247,7 @@ class EvapGUI(wx.Frame):
         # plot the data as a line series, and save the reference
         # to the plotted line series
         self.plot_data_emis = self.axes_emis.plot(
-            self.data_emis,
+            data.emis,
             linewidth=1,
             color=(0, 1, 1),
             )[0]
@@ -258,13 +256,13 @@ class EvapGUI(wx.Frame):
         '''Redraws the plot of FLUX'''
         twindow = 300
         #### DEBUG ####
-        # print('self.data_flux = {}'.format(self.data_flux))
+        # print('data.flux = {}'.format(data.flux))
         # print('EVAP EMIS = {}'.format(evap.flux))
         try:
-            xmax = len(self.data_flux)*2 if len(self.data_flux)*2 > twindow else twindow
+            xmax = len(data.flux)*self.redrawtime if len(data.flux)*self.redrawtime > twindow else twindow
             xmin = xmax - twindow
-            ymax = round(max(self.data_flux), 0) + 1
-            ymin = round(min(self.data_flux), 0) - 0.4
+            ymax = round(max(data.flux), 0) + 1
+            ymin = round(min(data.flux), 0) - 0.4
         except ValueError:
             xmax = twindow
             xmin = 0
@@ -282,8 +280,8 @@ class EvapGUI(wx.Frame):
 
         self.axes_flux.set_xbound(lower=xmin, upper=xmax)
         self.axes_flux.set_ybound(lower=ymin, upper=ymax)
-        self.plot_data_flux.set_xdata(np.arange(len(self.data_flux))*2)
-        self.plot_data_flux.set_ydata(np.array(self.data_flux))
+        self.plot_data_flux.set_xdata(np.arange(len(data.flux))*self.redrawtime)
+        self.plot_data_flux.set_ydata(np.array(data.flux))
 
         self.canvas_flux.draw()
 
@@ -291,10 +289,10 @@ class EvapGUI(wx.Frame):
         '''Redraws the plot of EMIS'''
         twindow = 300
         try:
-            xmax = len(self.data_emis)*2 if len(self.data_emis)*2 > twindow else twindow
+            xmax = len(data.emis)*self.redrawtime if len(data.emis)**self.redrawtime > twindow else twindow
             xmin = xmax - twindow
-            ymax = round(max(self.data_emis), 0) + 1
-            ymin = round(min(self.data_emis), 0) - 0.4
+            ymax = round(max(data.emis), 0) + 1
+            ymin = round(min(data.emis), 0) - 0.4
         except ValueError:
             xmax = twindow
             xmin = 0
@@ -312,8 +310,8 @@ class EvapGUI(wx.Frame):
 
         self.axes_emis.set_xbound(lower=xmin, upper=xmax)
         self.axes_emis.set_ybound(lower=ymin, upper=ymax)
-        self.plot_data_emis.set_xdata(np.arange(len(self.data_emis))*2)
-        self.plot_data_emis.set_ydata(np.array(self.data_emis))
+        self.plot_data_emis.set_xdata(np.arange(len(data.emis))*self.redrawtime)
+        self.plot_data_emis.set_ydata(np.array(data.emis))
 
         self.canvas_emis.draw()
 
@@ -358,8 +356,6 @@ class EvapGUI(wx.Frame):
         # (to respond to scale modifications, grid change, etc.)
         if not self.paused:
             evap.update_params()
-            self.data_flux.append(evap.flux)
-            self.data_emis.append(evap.emis)
             data.add_val(evap.flux, evap.emis)
             self.draw_plot_flux()
             self.draw_plot_emis()

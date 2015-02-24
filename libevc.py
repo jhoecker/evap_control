@@ -173,20 +173,21 @@ class Data():
         '''Initialize data attributes name and list.'''
         self.tstart = time.time()
         self.time = []
-        self.ylst1 = []
-        self.ylst2 = []
+        self.flux = []
+        self.emis = []
 
     def save(self, fname):
         '''Saves data arrays to hard disk.'''
         fl = file(fname, 'w')
         for ii in range(0, len(self.time)):
-            fl.write('{0}    {1}    {2}\n'.format(self.time[ii], self.ylst1[ii], self.ylst2[ii]))
+            fl.write('{0}    {1}    {2}\n'.format(self.time[ii],
+                self.flux[ii], self.emis[ii]))
 
     def add_val(self, yvalue1, yvalue2):
         '''Adds values to data lists.'''
         self.time.append(round(time.time()-self.tstart, 0))
-        self.ylst1.append(yvalue1)
-        self.ylst2.append(yvalue2)
+        self.flux.append(yvalue1)
+        self.emis.append(yvalue2)
 
 
 class DriveVal():
