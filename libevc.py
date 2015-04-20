@@ -38,14 +38,11 @@ class EvapParams():
         self.fil = None
         self.estab_cont(evap_controller)
 
-#        self.controller = EVC()
-
     def estab_cont(self, evap_controller):
         '''estab_cont establishes the communication with the EVC300 and reads
         the parameters the first time.'''
         if evap_controller == 'EVC':
             self.controller = EVC()
-#        self.update_params()
 
     def update_params(self):
         '''Returns all evaporator parameters.'''
@@ -61,8 +58,8 @@ class EvapParams():
         print('FLUX  {0} nA   VOLT  {1:3.0f} V'.format(self.flux, self.hv))
         print('TMP  {0:2.1f} C'.format(self.temp))
 
-    def drive_emis(self, endemis, duration):
-        '''drive_emis raises or loweres emission current time depending.
+    def change_emis(self, endemis, duration):
+        '''Raises or loweres emission current time depending.
         Necessary parameters are the final emission current endemis and the
         time (duration) in which the final emission current should be reached
         (in sec).'''
@@ -80,11 +77,11 @@ class EvapParams():
         drive_hv = DriveVal(duration, self.hv, endhv, 1)
         dt, values = drive_hv.calc_lintimestep()
         #### DEBUG ####
-        print(dt, values)
+        # print(dt, values)
         ###############
         for val in values:
             self.controller.set_hv(val)
-            time.sleep(1.5)
+            time.sleep(dt)
 
 
 class EVC():
@@ -93,7 +90,6 @@ class EVC():
         '''Initializes the communication with the EVC300.'''
         # settings for EVC300
         # give permission to user to access port ttyUSB0 -> links.txt
-        # TODO Write error when no serial port open
         # BUG in EVC300: Emission control not remote available
         try:
             self.ser = serial.Serial(
@@ -117,10 +113,13 @@ class EVC():
         return num
 
     def _set_val(self, str_val, new_val, maxdiff):
-        '''Writes new value EVC. Check that the new value is really reached.
-        maxdiff gives the maximal allowed difference.'''
+        '''Writes new value EVC. maxdiff gives the maximal allowed difference.'''
         old_val = self._get_value(str_val)
         dval = new_val - old_val
+        if dval > maxdiff:
+            print('set_val Err: Value change of {0} larger than allowed.\
+                Maximal allowed {1}'.format(dval, maxdiff))
+            return
         vsign = '+'
         if dval < 0:
             vsign = '-'
@@ -181,7 +180,7 @@ class Data():
         fl = file(fname, 'w')
         for ii in range(0, len(self.time)):
             fl.write('{0}    {1}    {2}\n'.format(self.time[ii],
-                self.flux[ii], self.emis[ii]))
+                     self.flux[ii], self.emis[ii]))
 
     def add_val(self, yvalue1, yvalue2):
         '''Adds values to data lists.'''
@@ -191,26 +190,28 @@ class Data():
 
 
 class DriveVal():
-    '''Change Val raises or lowers a value within a given duration by a
-    function.'''
-    def __init__(self, duration, startval, endval, valrate):
+    '''DriveVal raises or lowers a value within a given duration by a
+    function. Valstep is the delta which is used to raise by every time
+    step.'''
+    def __init__(self, duration, startval, endval, valstep):
         self.duration = duration
         self.dt_min = 1.5  # sec
-        self.valrate = valrate
+        self.valstep = valstep
         self.startval = startval
         self.dval = endval - startval
 
     def calc_lintimestep(self):
-        n = int(self.dval/self.valrate)
+        '''Calculates and returns the timestep dt within the value is raised
+        by valstep and a list of values to which the value is raised.'''
+        n = int(self.dval/self.valstep)
         self.dt = self.duration/n
         #### DEBUG ####
         print('n = {}, dt = {}'.format(n, self.dt))
         ###############
         if self.dt < self.dt_min:
-            # TODO: Better to raise exception here
             print('Err calc_lintimestep: Time step too small (dt < {0})'
                   .format(self.dt_min))
             vals = [self.startval]
         else:
-            vals = [self.startval+ii*self.valrate for ii in range(1, n+1)]
+            vals = [self.startval+ii*self.valstep for ii in range(1, n+1)]
         return self.dt, vals
