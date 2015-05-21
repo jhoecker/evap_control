@@ -18,6 +18,8 @@
     <http://www.gnu.org/licenses/>.
 '''
 
+from __future__ import print_function
+from __future__ import division
 import os
 import wx
 import matplotlib
@@ -89,7 +91,7 @@ class EnterSelectElement(wx.Panel):
         elif self.paramSelection == 'EMIS':
             evc.set_emis(int(input))
         elif self.paramSelection == 'None':
-            print 'No Selection'
+            print('No Selection')
 
     def on_combo(self, event):
         '''Gets selection from combo box.'''
@@ -108,7 +110,7 @@ class EvapGUI(wx.Frame):
         self.create_main_panel()
         self.redraw_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)
-        self.redraw_timer.Start(self.redraw_timer*1000)
+        self.redraw_timer.Start(self.redrawtime*1000)
 
     def create_main_panel(self):
         '''Creates main panel with all the GUI elements. A lot of box sizers
@@ -186,7 +188,8 @@ class EvapGUI(wx.Frame):
         self.hbox6.Add(self.hbox4, 0, flag=wx.RIGHT | wx.GROW | wx.ALIGN_TOP, border=10)
 
         self.hbox7 = wx.BoxSizer(wx.VERTICAL)
-        self.hbox7.Add(self.caption, 0, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.hbox7.Add(self.caption, 0, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM |
+                       wx.ALIGN_CENTER_VERTICAL, border=5)
         self.hbox7.Add(self.line3, 0, flag=wx.BOTTOM | wx.GROW, border=10)
         self.hbox7.Add(self.hbox6, 0, flag=wx.ALL | wx.ALIGN_TOP | wx.ALIGN_LEFT | wx.SHAPED)
         self.hbox7.Add(self.line4, 0, flag=wx.TOP | wx.BOTTOM | wx.GROW, border=10)
@@ -259,7 +262,8 @@ class EvapGUI(wx.Frame):
         # print('data.flux = {}'.format(data.flux))
         # print('EVAP EMIS = {}'.format(evap.flux))
         try:
-            xmax = len(data.flux)*self.redrawtime if len(data.flux)*self.redrawtime > twindow else twindow
+            xmax = len(data.flux)*self.redrawtime \
+                if len(data.flux)*self.redrawtime > twindow else twindow
             xmin = xmax - twindow
             ymax = round(max(data.flux), 0) + 1
             ymin = round(min(data.flux), 0) - 0.4
@@ -289,7 +293,8 @@ class EvapGUI(wx.Frame):
         '''Redraws the plot of EMIS'''
         twindow = 300
         try:
-            xmax = len(data.emis)*self.redrawtime if len(data.emis)**self.redrawtime > twindow else twindow
+            xmax = len(data.emis)*self.redrawtime \
+                if len(data.emis)**self.redrawtime > twindow else twindow
             xmin = xmax - twindow
             ymax = round(max(data.emis), 0) + 1
             ymin = round(min(data.emis), 0) - 0.4
@@ -351,7 +356,8 @@ class EvapGUI(wx.Frame):
         self.draw_plot_emis()
 
     def on_redraw_timer(self, event):
-        '''Redraw timer updates all values of the graph and status text field.'''
+        '''Redraw timer updates all values of the graph and status text field.
+        '''
         # if paused do not add data, but still redraw the plot
         # (to respond to scale modifications, grid change, etc.)
         if not self.paused:

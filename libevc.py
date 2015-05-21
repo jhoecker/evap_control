@@ -69,19 +69,10 @@ class EvapParams():
             self.controller.set_emis(val)
             time.sleep(dt)
 
-    def change_hv(self, endhv, duration):
-        '''drive_hv raises or loweres the high voltage time depending.
-        Necessary parameters are the final voltage endhv and the
-        time (duration) in which the final voltage should be reached
-        (in sec).'''
-        drive_hv = DriveVal(duration, self.hv, endhv, 1)
-        dt, values = drive_hv.calc_lintimestep()
-        #### DEBUG ####
-        # print(dt, values)
-        ###############
-        for val in values:
-            self.controller.set_hv(val)
-            time.sleep(dt)
+    def change_hv(self, endhv):
+        '''Raises or lowers hv value immediately.'''
+        self.controller.set_hv(endhv)
+        time.sleep(1)
 
 
 class EVC():
