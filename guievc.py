@@ -31,12 +31,12 @@ import numpy as np
 import pylab
 import libevc
 import time
+import threading
 
 ## TODO
-# - Remove EVC instance
+# - Use combobox to choose data displayed in graph
 
 evap = libevc.EvapParams('EVC')
-evc = libevc.EVC()
 data = libevc.Data()
 
 
@@ -64,7 +64,7 @@ class EnterSelectElement(wx.Panel):
         self.Bind(wx.EVT_COMBOBOX, self.on_combo, self.select_value)
 
         manual_box = wx.BoxSizer(wx.HORIZONTAL)
-        manual_box.Add(self.manual_text, flag=wx.ALIGN_CENTER_VERTICAL)
+        manual_box.Add(self.manual_text, flag=wx.ALIGN_RIGHT)
         manual_box.Add(self.select_value, flag=wx.ALIGN_RIGHT)
         sizer.Add(manual_box, 0, wx.ALL, 10)
         self.SetSizer(sizer)
@@ -87,15 +87,90 @@ class EnterSelectElement(wx.Panel):
     def setting_value(self, input):
         '''Selects value from combo box.'''
         if self.paramSelection == 'VOLT':
-            evc.set_hv(int(input))
+            evap.controller.set_hv(int(input))
         elif self.paramSelection == 'EMIS':
-            evc.set_emis(int(input))
+            evap.controller.set_emis(int(input))
         elif self.paramSelection == 'None':
             print('No Selection')
 
     def on_combo(self, event):
         '''Gets selection from combo box.'''
         self.paramSelection = self.select_value.GetValue()
+
+
+class EnterParamElement(wx.Panel):
+    '''Enter two parameter values.'''
+    def __init__(self, parent, ID, label, initval):
+        '''Inits EnterElement.'''
+        wx.Panel.__init__(self, parent, ID)
+
+        self.value = initval
+        self.degas = False
+        box = wx.StaticBox(self, -1, label)
+        sizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+
+        self.manual_text_emis = wx.TextCtrl(self, -1,
+                                        size=(50, -1),
+                                        value='Emis',
+                                        style=wx.TE_PROCESS_ENTER)
+
+        self.manual_text_duration = wx.TextCtrl(self, -1,
+                                        size=(50,-1),
+                                        value='Time',
+                                        style=wx.TE_PROCESS_ENTER)
+
+        manual_box_degas_text = wx.BoxSizer(wx.VERTICAL)
+        manual_box_degas_text.Add(wx.StaticText(self, label='max. Emission (mA):'),
+                                    flag=wx.RIGHT | wx.GROW | wx.ALIGN_LEFT)
+        manual_box_degas_text.Add(wx.StaticText(self, label='Duration (min):'),
+                                    flag=wx.ALIGN_CENTER_VERTICAL | wx.GROW)
+        manual_box_degas_params = wx.BoxSizer(wx.VERTICAL)
+        manual_box_degas_params.Add(self.manual_text_emis, flag=wx.ALIGN_CENTER_VERTICAL)
+        manual_box_degas_params.Add(self.manual_text_duration, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.degas_button = wx.Button(self, -1, 'Start')
+        self.Bind(wx.EVT_BUTTON, self.on_degas_button, self.degas_button)
+        self.Bind(wx.EVT_UPDATE_UI, self.on_update_degas_button, self.degas_button)
+
+        sizer.Add(manual_box_degas_text, 0, wx.ALL, 10)
+        sizer.Add(manual_box_degas_params, 0, wx.ALL, 10)
+        sizer.Add(self.degas_button, 0, wx.ALL, 10)
+        self.SetSizer(sizer)
+        sizer.Fit(self)
+
+    def on_degas_button(self, event):
+        '''Function starting degas.'''
+        try:
+            degas_maxemis = float(self.manual_text_emis.GetValue())
+            degas_duration = float(self.manual_text_duration.GetValue())*60
+        except ValueError:
+            print('Degas Error: Please enter number')
+            return
+        self.degas = not self.degas
+        #### DEBUG ####
+        #print('DEGAS max. Emission = {} mA\nDEGAS duration = {} s'.format(
+        #      degas_maxemis, degas_duration))
+        #print('Degas is {}.'.format(self.degas))
+        ###############
+        ## Sets degas to True or False
+        if self.degas is True:
+            #### DEBUG ####
+            #print('Degas started')
+            ###############
+            evap.degas = True
+            chg_emis_thread = threading.Thread(target=self.__run_chg_emis,
+                args=[degas_maxemis, degas_duration])
+            chg_emis_thread.start()
+        else:
+            evap.degas = False
+
+    def on_update_degas_button(self, event):
+        label = 'Cancel' if self.degas else 'Start'
+        self.degas_button.SetLabel(label)
+
+    def __run_chg_emis(self, degas_maxemis, degas_duration):
+        evap.change_emis(degas_maxemis, degas_duration)
+        self.degas = False
 
 
 class EvapGUI(wx.Frame):
@@ -123,7 +198,9 @@ class EvapGUI(wx.Frame):
         self.canvas_flux = FigCanvas(self.panel, -1, self.fig_flux)
         self.canvas_emis = FigCanvas(self.panel, -1, self.fig_emis)
 
-        self.set_value = EnterSelectElement(self.panel, -1, 'Set Value', 15)
+        self.set_value = EnterSelectElement(self.panel, -1, 'Set Parameter', 15)
+
+        self.set_degas_params = EnterParamElement(self.panel, -1, 'Degas', 10)
 
         self.pause_button = wx.Button(self.panel, -1, 'Pause')
         self.Bind(wx.EVT_BUTTON, self.on_pause_button, self.pause_button)
@@ -187,6 +264,7 @@ class EvapGUI(wx.Frame):
         self.hbox6.Add(self.hbox2, 0, flag=wx.RIGHT | wx.GROW, border=15)
         self.hbox6.Add(self.hbox4, 0, flag=wx.RIGHT | wx.GROW | wx.ALIGN_TOP, border=10)
 
+        ## Row including text, set value box and degas
         self.hbox7 = wx.BoxSizer(wx.VERTICAL)
         self.hbox7.Add(self.caption, 0, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM |
                        wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -194,6 +272,7 @@ class EvapGUI(wx.Frame):
         self.hbox7.Add(self.hbox6, 0, flag=wx.ALL | wx.ALIGN_TOP | wx.ALIGN_LEFT | wx.SHAPED)
         self.hbox7.Add(self.line4, 0, flag=wx.TOP | wx.BOTTOM | wx.GROW, border=10)
         self.hbox7.Add(self.set_value, 0, flag=wx.RIGHT | wx.ALIGN_LEFT)
+        self.hbox7.Add(self.set_degas_params, 0, flag=wx.RIGHT | wx.ALIGN_LEFT)
 
         self.vbox = wx.BoxSizer(wx.HORIZONTAL)
         self.vbox.Add(self.hbox7, 0, flag=wx.ALL | wx.ALIGN_LEFT, border=15)
@@ -279,8 +358,12 @@ class EvapGUI(wx.Frame):
             self.axes_flux.grid(False)
 
         if self.fix_axes.IsChecked():
-            xmin = 0
-            ymin = 0
+            try:
+                xmin = round(max(data.flux), 0) + 5
+                ymin = round(min(data.flux), 0) - 0.4
+            except ValueError:
+                xmin = 0
+                ymin = 0
 
         self.axes_flux.set_xbound(lower=xmin, upper=xmax)
         self.axes_flux.set_ybound(lower=ymin, upper=ymax)

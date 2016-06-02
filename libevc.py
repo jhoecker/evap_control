@@ -36,6 +36,7 @@ class EvapParams():
         self.hv = None
         self.flux = None
         self.fil = None
+        self.degas = False
         self.estab_cont(evap_controller)
 
     def estab_cont(self, evap_controller):
@@ -63,11 +64,25 @@ class EvapParams():
         Necessary parameters are the final emission current endemis and the
         time (duration) in which the final emission current should be reached
         (in sec).'''
-        drive_emis = DriveVal(duration, self.emis, endemis, 0.1)
+        #drive_emis = DriveVal(duration, self.emis, endemis, 0.1)
+        #dt, values = drive_emis.calc_lintimestep()
+        #### DUMMY values for testing #####
+        drive_emis = DriveVal(duration, 1, endemis, 0.1)
         dt, values = drive_emis.calc_lintimestep()
+        #####
+        t_start = time.time()
         for val in values:
-            self.controller.set_emis(val)
             time.sleep(dt)
+            if self.degas is True:
+                #self.controller.set_emis(val)
+                print('t_run = {} s, Value = {}'.format(
+                    round(time.time()-t_start,2), val))
+            else:
+                print('Auto-raise emission stopped.')
+                return
+        self.degas = False
+        print('Auto-raising done')
+        return self.degas
 
     def change_hv(self, endhv):
         '''Raises or lowers hv value immediately.'''
@@ -76,7 +91,7 @@ class EvapParams():
 
 
 class EVC():
-    '''Class to communicate EVC300 controller.'''
+    '''Class to communicate with EVC300 controller.'''
     def __init__(self):
         '''Initializes the communication with the EVC300.'''
         # settings for EVC300
@@ -91,7 +106,7 @@ class EVC():
                 xonxoff=True,
                 bytesize=serial.EIGHTBITS,
                 timeout=1)
-            print('Serial port to EVC open')
+            print('evap: Serial port to EVC open')
         except serial.SerialException as err_msg:
             print('Not able to open serial port: {}'.format(err_msg))
 
@@ -142,7 +157,7 @@ class EVC():
 
     def set_hv(self, new_voltage):
         '''Sets volt.'''
-        maxdiffhv = 1.5
+        maxdiffhv = 20
         self._set_val('HV', new_voltage, maxdiffhv)
 
     def set_emis(self, new_emis):
