@@ -87,9 +87,9 @@ class EnterSelectElement(wx.Panel):
     def setting_value(self, input):
         '''Selects value from combo box.'''
         if self.paramSelection == 'VOLT':
-            evap.controller.set_hv(int(input))
+            evap.set_hv(int(input))
         elif self.paramSelection == 'EMIS':
-            evap.controller.set_emis(int(input))
+            evap.set_emis(float(input))
         elif self.paramSelection == 'None':
             print('No Selection')
 

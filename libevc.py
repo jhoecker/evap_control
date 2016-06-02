@@ -47,11 +47,11 @@ class EvapParams():
 
     def update_params(self):
         '''Returns all evaporator parameters.'''
-        self.fil = self.controller.get_fil()
-        self.emis = self.controller.get_emis()
-        self.flux = self.controller.get_flux()
-        self.temp = self.controller.get_temp()
-        self.hv = self.controller.get_hv()
+        self.fil = self.get_fil()
+        self.emis = self.get_emis()
+        self.flux = self.get_flux()
+        self.temp = self.get_temp()
+        self.hv = self.get_hv()
 
     def print_status(self):
         ''' Print evaporator parameters to stdout.'''
@@ -64,17 +64,17 @@ class EvapParams():
         Necessary parameters are the final emission current endemis and the
         time (duration) in which the final emission current should be reached
         (in sec).'''
-        #drive_emis = DriveVal(duration, self.emis, endemis, 0.1)
-        #dt, values = drive_emis.calc_lintimestep()
-        #### DUMMY values for testing #####
-        drive_emis = DriveVal(duration, 1, endemis, 0.1)
+        drive_emis = DriveVal(duration, self.emis, endemis, 0.1)
         dt, values = drive_emis.calc_lintimestep()
+        #### DUMMY values for testing #####
+        #drive_emis = DriveVal(duration, 1, endemis, 0.1)
+        #dt, values = drive_emis.calc_lintimestep()
         #####
         t_start = time.time()
         for val in values:
             time.sleep(dt)
             if self.degas is True:
-                #self.controller.set_emis(val)
+                self.set_emis(val)
                 print('t_run = {} s, Value = {}'.format(
                     round(time.time()-t_start,2), val))
             else:
@@ -86,8 +86,44 @@ class EvapParams():
 
     def change_hv(self, endhv):
         '''Raises or lowers hv value immediately.'''
-        self.controller.set_hv(endhv)
+        self.set_hv(endhv)
         time.sleep(1)
+
+    def get_fil(self):
+        '''Reads fil.'''
+        return self.controller.get_value('Fil')
+
+    def get_emis(self):
+        '''Reads emis.'''
+        return self.controller.get_value('Emis')
+
+    def get_flux(self):
+        '''Reads flux.'''
+        return self.controller.get_value('Flux')*10**9
+
+    def get_hv(self):
+        '''Reads volt.'''
+        return self.controller.get_value('HV')
+
+    def get_temp(self):
+        '''Reads temp.'''
+        return self.controller.get_value('Temp')
+
+    def set_hv(self, new_voltage):
+        '''Sets volt.'''
+        maxdiffhv = 20
+        self.controller.set_val('HV', new_voltage, self.hv, maxdiffhv)
+
+    def set_emis(self, new_emis):
+        '''Sets emission current. Checks before whether the evaporator is in
+        emission control.'''
+        # Checking every time if emissioncontrol is on might be a bit
+        # overloading?
+        maxdiffemis = 1.5
+        if self.emis > 3.0:
+            self.controller.set_val('EMIS', new_emis, self.emis, maxdiffemis)
+        else:
+            print('Err set_emis: Emission too low. Set Emission forbidden.')
 
 
 class EVC():
@@ -110,7 +146,7 @@ class EVC():
         except serial.SerialException as err_msg:
             print('Not able to open serial port: {}'.format(err_msg))
 
-    def _get_value(self, str_val):
+    def get_value(self, str_val):
         '''Reads value of parameter given by str_val. Returns float number.'''
         self.ser.write('GET ' + str_val + '\r\n')
         num = ''
@@ -118,9 +154,8 @@ class EVC():
         num = float(self.ser.read(self.ser.inWaiting()))
         return num
 
-    def _set_val(self, str_val, new_val, maxdiff):
+    def set_val(self, str_val, new_val, old_val, maxdiff):
         '''Writes new value EVC. maxdiff gives the maximal allowed difference.'''
-        old_val = self._get_value(str_val)
         dval = new_val - old_val
         if dval > maxdiff:
             print('set_val Err: Value change of {0} larger than allowed.\
@@ -135,41 +170,7 @@ class EVC():
         if self.ser.inWaiting() > 0:
             print(self.ser.read(self.ser.inWaiting()))
 
-    def get_fil(self):
-        '''Reads fil.'''
-        return self._get_value('Fil')
 
-    def get_emis(self):
-        '''Reads emis.'''
-        return self._get_value('Emis')
-
-    def get_flux(self):
-        '''Reads flux.'''
-        return self._get_value('Flux')*10**9
-
-    def get_hv(self):
-        '''Reads volt.'''
-        return self._get_value('HV')
-
-    def get_temp(self):
-        '''Reads temp.'''
-        return self._get_value('Temp')
-
-    def set_hv(self, new_voltage):
-        '''Sets volt.'''
-        maxdiffhv = 20
-        self._set_val('HV', new_voltage, maxdiffhv)
-
-    def set_emis(self, new_emis):
-        '''Sets emission current. Checks before whether the evaporator is in
-        emission control.'''
-        # Checking every time if emissioncontrol is on might be a bit
-        # overloading?
-        maxdiffemis = 1.5
-        if self.get_emis() > 3.0:
-            self._set_val('EMIS', new_emis, maxdiffemis)
-        else:
-            print('Err set_emis: Emission too low. Set Emission forbidden.')
 
 
 class Data():
