@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 '''
-    (C) Copyright 2015 Paul Brehmer, Keno Harbort, Jan Höcker
+    (C) Copyright 2015-2016 Paul Brehmer, Keno Harbort, Jan Höcker
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as
@@ -175,7 +175,7 @@ class EnterParamElement(wx.Panel):
 
 class EvapGUI(wx.Frame):
     '''The main frame of the application'''
-    title = 'EVAP - The EVC Data Graph'
+    title = 'EVAP - The Evaporator Data Graph'
 
     def __init__(self):
         '''Inits the main frame.'''
